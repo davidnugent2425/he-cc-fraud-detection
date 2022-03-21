@@ -3,7 +3,9 @@ import os
 import tenseal as ts
 import torch
 import pickle
-from cc_he_utils import json_serialize, json_deserialize, load_test_data
+from cc_he_utils import json_serialize, json_deserialize
+import xgboost as xgb
+from ppxgboost import PPBooster as ppbooster
 
 # HE Model
 class HEModel:
@@ -38,6 +40,8 @@ hidden_layer = torch.load('./nn-hidden-layer.pt')
 output_layer = torch.load('./nn-output-layer.pt')
 he_model = HEModel(hidden_layer, output_layer)
 
+he_xgboost_model = pickle.load(open('encrypted-xgb-uml-clf-100.pt', "rb"))
+
 app = Flask(__name__)
 
 @app.route('/nn', methods=['POST'])
@@ -49,6 +53,17 @@ def infer_nn():
     result = he_model(enc_input)
     return {
         'result': json_serialize(result.serialize())
+    }
+
+
+@app.route('/xgboost', methods=['POST'])
+def infer_xgboost():
+    print(len(request.data))
+    data = request.get_json()
+    enc_input = json_deserialize(data['input'])
+    result = ppbooster.predict_binary(he_xgboost_model, enc_input)
+    return {
+        'result': json_serialize(result)
     }
 
 if __name__ == '__main__':

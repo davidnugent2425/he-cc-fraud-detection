@@ -16,3 +16,4 @@ matplotlib
 seaborn
 torch
 tenseal
+requests
