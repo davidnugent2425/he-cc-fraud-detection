@@ -1,38 +1,11 @@
 import wandb
-from train_utils import load_dataset, train_test_split_undersample, report_metrics
 import torch
-from sklearn.preprocessing import MinMaxScaler
 import numpy as np
-
-x, y = load_dataset()
-
-config_defaults = {
-    "undersampling_num_negatives": 853,
-    "hidden_layer_size": 27,
-    "pos_weight": 3,
-}
-
-sweep_config = {
-    "method": "random",
-    "metric": {
-      "name": "average_precision",
-      "goal": "maximize"   
-    },
-    "parameters": {
-        "undersampling_num_negatives": {
-            "min": 500,
-            "max": 1500,
-        },
-        "hidden_layer_size": {
-            "min": 20,
-            "max": 60,
-        },
-        "pos_weight": {
-            "min": 1,
-            "max": 5,
-        }
-    }
-}
+import pickle
+from tqdm import tqdm
+import time
+from functools import partial
+from train_utils import load_dataset, train_test_split_undersample, report_metrics, nn_configs, prep_data_nn, create_dataloaders, parse_training_args
 
 # Plaintext Model
 class Classifier(torch.nn.Module):
@@ -67,28 +40,17 @@ def loss_batch(model, loss_func, xb, yb, opt=None):
 
     return loss.item(), len(xb)
 
-def train():
+def train(x, y, configs, project_name, wandb_mode=None):
+    print('Training neural network...')
+    start_time = time.perf_counter()
     torch.manual_seed(0)
     np.random.seed(0)
-    wandb.init(config=config_defaults, project="cc-he-nn")
+    wandb.init(config=configs['defaults'], project=project_name, mode=wandb_mode)
     config = wandb.config
 
     xtrain, xtest, ytrain, ytest = train_test_split_undersample(x, y, config.undersampling_num_negatives, test_size=0.25)
-    xtrain = xtrain.values
-    ytrain = ytrain.values
-    xtest = xtest.values
-    ytest = ytest.values
-
-    scaler = MinMaxScaler()
-    scaler.fit(x.values)
-    xtrain = scaler.transform(xtrain)
-    xtest = scaler.transform(xtest)
-
-    # Dataloaders setup, batch size of 100
-    train_ds = torch.utils.data.TensorDataset(torch.tensor(xtrain).float(), torch.tensor(ytrain).float())
-    test_ds = torch.utils.data.TensorDataset(torch.tensor(xtest).float(), torch.tensor(ytest).float())
-    train_dl = torch.utils.data.DataLoader(train_ds, batch_size=100)
-    test_dl = torch.utils.data.DataLoader(test_ds, batch_size=100)
+    xtrain, xtest, ytrain, ytest = prep_data_nn(x, xtrain, xtest, ytrain, ytest)
+    train_ds, test_ds, train_dl, test_dl = create_dataloaders(xtrain, xtest, ytrain, ytest)
 
     model = Classifier(config.hidden_layer_size)
     wandb.watch(model, log_freq=100)
@@ -98,7 +60,7 @@ def train():
     loss_func = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     n_epochs = 100
 
-    for epoch in range(n_epochs):
+    for epoch in tqdm(range(n_epochs)):
         model.train()
         for xb, yb in train_dl:
             loss_batch(model, loss_func, xb, yb, opt)
@@ -114,8 +76,24 @@ def train():
     preds = model(torch.tensor(xtest).float()).detach().numpy()
     report_metrics(preds, ytest)
 
+    print('Time taken to train model:', (time.perf_counter()-start_time)/60)
+    return model
+
 
 if __name__ == '__main__':
-    # sweep_id = wandb.sweep(sweep_config, project="cc-he-nn")
-    # wandb.agent(sweep_id, train, count=50)
-    train()
+    args = parse_training_args("Train a neural network compatible with conversion to a network using homomorphic encryption", ['ulb'])
+
+    dataset_name = 'ulb' if not args['dataset'] else args['dataset']
+    project_name = 'cc-{}-nn'.format(dataset_name)
+    configs = nn_configs[dataset_name]
+
+    x, y = load_dataset(dataset_name)
+    wandb_mode = None if args['wandb'] else "disabled"
+
+    if args['wandb_sweep']:
+        sweep_id = wandb.sweep(configs['sweep'], project=project_name)
+        wandb.agent(sweep_id, partial(train, x, y, configs, project_name), count=args['wandb_sweep'])
+
+    else:
+        model = train(x, y, configs, project_name, wandb_mode=wandb_mode)
+        pickle.dump(model, open(dataset_name+'-nn.pt', "wb" ))
