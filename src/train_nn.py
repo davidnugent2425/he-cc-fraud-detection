@@ -5,7 +5,9 @@ import pickle
 from tqdm import tqdm
 import time
 from functools import partial
-from train_utils import load_dataset, train_test_split_undersample, report_metrics, nn_configs, prep_data_nn, create_dataloaders, parse_training_args
+from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
+from train_utils import load_dataset, train_test_split_undersample, report_metrics, nn_configs, prep_data_nn, create_dataloader, parse_training_args, evaluate_predictions
 
 # Plaintext Model
 class Classifier(torch.nn.Module):
@@ -48,9 +50,20 @@ def train(x, y, configs, project_name, wandb_mode=None):
     wandb.init(config=configs['defaults'], project=project_name, mode=wandb_mode)
     config = wandb.config
 
-    xtrain, xtest, ytrain, ytest = train_test_split_undersample(x, y, config.undersampling_num_negatives, test_size=0.25)
-    xtrain, xtest, ytrain, ytest = prep_data_nn(x, xtrain, xtest, ytrain, ytest)
-    train_ds, test_ds, train_dl, test_dl = create_dataloaders(xtrain, xtest, ytrain, ytest)
+    # split data into data used for training and data used for testing
+    xtrain, xtest, ytrain, ytest = train_test_split(x, y, test_size=0.2, shuffle=False)
+    # split training data into training and validation sets for hyperparameter tuning
+    xtrain, xvalid, ytrain, yvalid = train_test_split_undersample(xtrain, ytrain, config.undersampling_num_negatives, test_size=0.1875)
+
+    scaler = preprocessing.MinMaxScaler()
+    scaler.fit(x.values)
+
+    xtrain, ytrain = prep_data_nn(xtrain, ytrain, scaler)
+    xvalid, yvalid = prep_data_nn(xvalid, yvalid, scaler)
+    xtest, ytest = prep_data_nn(xtest, ytest, scaler)
+
+    train_dl = create_dataloader(xtrain, ytrain)
+    valid_dl = create_dataloader(xvalid, yvalid)
 
     model = Classifier(config.hidden_layer_size)
     wandb.watch(model, log_freq=100)
@@ -68,15 +81,19 @@ def train(x, y, configs, project_name, wandb_mode=None):
         model.eval()
         with torch.no_grad():
             losses, nums = zip(
-                *[loss_batch(model, loss_func, xb, yb) for xb, yb in test_dl]
+                *[loss_batch(model, loss_func, xb, yb) for xb, yb in valid_dl]
             )
         test_loss = np.sum(np.multiply(losses, nums)) / np.sum(nums)
         wandb.log({"test_loss": test_loss})
     
-    preds = model(torch.tensor(xtest).float()).detach().numpy()
-    report_metrics(preds, ytest)
+    preds = model(torch.tensor(xvalid).float()).detach().numpy()
+    report_metrics(preds, yvalid)
 
     print('Time taken to train model:', (time.perf_counter()-start_time)/60)
+
+    test_preds = model(torch.tensor(xtest).float()).detach().numpy()
+    evaluate_predictions(test_preds, ytest)
+
     return model
 
 

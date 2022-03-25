@@ -6,18 +6,28 @@ import pickle
 from encrypt_xgboost_model import encrypt_model, test_encrypted_model
 from ppxgboost import BoosterParser
 import time
+from sklearn import metrics, preprocessing
+from sklearn.model_selection import train_test_split
+from functools import partial
 
-from train_utils import load_dataset, train_test_split_undersample, report_metrics, xgboost_configs, parse_training_args
+from train_utils import load_dataset, train_test_split_undersample, report_metrics, xgboost_configs, parse_training_args, summarize_data, evaluate_predictions
 
 
 def train(x, y, configs, project_name, num_cores=1, test_encrypted=False, wandb_mode=None):
-    print('Training XGBoost model...')
+    print('\nTraining XGBoost model...')
     start_time = time.perf_counter()
 
     wandb.init(config=configs['defaults'], project=project_name, mode=wandb_mode)
     config = wandb.config
 
-    xtrain, xtest, ytrain, ytest = train_test_split_undersample(x, y, config.undersampling_num_negatives, test_size=0.25)
+    # split data into data used for training and data used for testing
+    xtrain, xtest, ytrain, ytest = train_test_split(x, y, test_size=0.2, shuffle=False)
+    # split training data into training and validation sets for hyperparameter tuning
+    xtrain, xvalid, ytrain, yvalid = train_test_split_undersample(xtrain, ytrain, config.undersampling_num_negatives, test_size=0.1875)
+    
+    summarize_data(ytrain, 'training set')
+    summarize_data(yvalid, 'valid set')
+    summarize_data(ytest, 'test set')
     
     clf = xgb.XGBClassifier(
         booster='gbtree',
@@ -31,8 +41,8 @@ def train(x, y, configs, project_name, num_cores=1, test_encrypted=False, wandb_
     clf.fit(xtrain, ytrain)
     
     model = clf.get_booster()
-    preds = model.predict(xgb.DMatrix(xtest))
-    report_metrics(preds, ytest)
+    preds = model.predict(xgb.DMatrix(xvalid))
+    report_metrics(preds, yvalid)
     print('Time taken to train model:', (time.perf_counter()-start_time)/60)
 
     if test_encrypted:
@@ -47,9 +57,11 @@ def train(x, y, configs, project_name, num_cores=1, test_encrypted=False, wandb_
             num_cores
         )
 
+    test_preds = model.predict(xgb.DMatrix(xtest))
+    evaluate_predictions(test_preds, ytest)
+
     return model
 
-from functools import partial
 
 if __name__ == '__main__':
     args = parse_training_args("Train an xgboost model and encrypt it to be compatible with homomorphic encryption.", ['ulb', 'ieee'])
@@ -57,9 +69,10 @@ if __name__ == '__main__':
     dataset_name = 'ulb' if not args['dataset'] else args['dataset']
     project_name = 'cc-{}-xgboost'.format(dataset_name)
     configs = xgboost_configs[dataset_name]
+    wandb_mode = None if args['wandb'] else "disabled"
 
     x, y = load_dataset(dataset_name)
-    wandb_mode = None if args['wandb'] else "disabled"
+    summarize_data(y, dataset_name)
 
     if args['wandb_sweep']:
         sweep_id = wandb.sweep(configs['sweep'], project=project_name)

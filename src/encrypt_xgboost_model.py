@@ -56,7 +56,7 @@ def test_encrypted_model(plaintext_model, encrypted_model, keys, xtest, ytest, n
     start_time = time.perf_counter()
     start_index = ytest.index[0]
     test_idxs = np.array(ytest[ytest==1].index)
-    test_idxs = np.random.choice(test_idxs, 90, replace = False) - start_index
+    test_idxs = np.random.choice(test_idxs, 75, replace = False) - start_index
     xtest = xtest.iloc[test_idxs, :]
     ytest = ytest.iloc[test_idxs]
 

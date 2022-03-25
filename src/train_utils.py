@@ -5,6 +5,8 @@ import numpy as np
 from sklearn import metrics, preprocessing
 import argparse
 import torch
+from seaborn import heatmap
+from matplotlib import pyplot as plt
 
 def load_dataset(name='ulb'):
     print('Loading {} dataset...'.format(name))
@@ -33,7 +35,7 @@ def load_dataset(name='ulb'):
 
 def train_test_split_undersample(x, y, num_negatives, test_size=0.25):
     np.random.seed(0)
-    xtrain, xtest, ytrain, ytest = train_test_split(x, y, test_size=0.25, shuffle=False)
+    xtrain, xtest, ytrain, ytest = train_test_split(x, y, test_size=test_size, shuffle=False)
     
     # Undersampling
     train_fraud_indices = np.array(ytrain[ytrain==1].index)
@@ -45,25 +47,19 @@ def train_test_split_undersample(x, y, num_negatives, test_size=0.25):
     ytrain = ytrain.iloc[train_indices]
     return xtrain, xtest, ytrain, ytest
     
-def prep_data_nn(x, xtrain, xtest, ytrain, ytest):
-    xtrain = xtrain.values
-    ytrain = ytrain.values
-    xtest = xtest.values
-    ytest = ytest.values
+def summarize_data(y, name):
+    print('{}:'.format(name), len(y), 'total values, num fraudulant:', len(y[y==1].index))
 
-    scaler = preprocessing.MinMaxScaler()
-    scaler.fit(x.values)
-    xtrain = scaler.transform(xtrain)
-    xtest = scaler.transform(xtest)
-    
-    return xtrain, xtest, ytrain, ytest
+def prep_data_nn(x, y, scaler):
+    x = x.values
+    y = y.values
+    x = scaler.transform(x)
+    return x, y
 
-def create_dataloaders(xtrain, xtest, ytrain, ytest):
-    train_ds = torch.utils.data.TensorDataset(torch.tensor(xtrain).float(), torch.tensor(ytrain).float())
-    test_ds = torch.utils.data.TensorDataset(torch.tensor(xtest).float(), torch.tensor(ytest).float())
-    train_dl = torch.utils.data.DataLoader(train_ds, batch_size=100)
-    test_dl = torch.utils.data.DataLoader(test_ds, batch_size=100)
-    return train_ds, test_ds, train_dl, test_dl
+def create_dataloader(x, y):
+    ds = torch.utils.data.TensorDataset(torch.tensor(x).float(), torch.tensor(y).float())
+    dl = torch.utils.data.DataLoader(ds, batch_size=100)
+    return dl
 
 def convert_to_binary(preds, threshold=0.5):
     preds[preds>=0.5] = 1.0
@@ -81,6 +77,23 @@ def report_metrics(preds, truths):
         "false_positives": conf_matrix[0][1],
         "true_positives": conf_matrix[1][1],
     })
+
+def evaluate_predictions(preds, truths):
+    print('\nTest results:')
+    print('Average precision: {}'.format(metrics.average_precision_score(truths, preds)))
+    print('AUC ROC score: {}'.format(metrics.roc_auc_score(truths, preds)))
+    preds = convert_to_binary(preds)
+    print('Accuracy score: {}'.format(metrics.accuracy_score(truths, preds)))
+    print(metrics.classification_report(truths, preds))
+
+    conf_matrix = metrics.confusion_matrix(truths, preds)
+    plt.figure(figsize=(5, 5))
+    labels = ["Valid", "Fraud"]
+    heatmap(conf_matrix, xticklabels=labels, yticklabels=labels, annot=True, fmt="d");
+    plt.title("Confusion matrix")
+    plt.ylabel('True class')
+    plt.xlabel('Predicted class')
+    plt.show()
 
 def parse_training_args(description, datasets):
     parser = argparse.ArgumentParser(
