@@ -45,8 +45,10 @@ def train(x, y, configs, project_name, num_cores=1, test_encrypted=False, wandb_
     report_metrics(preds, yvalid)
     print('Time taken to train model:', (time.perf_counter()-start_time)/60)
 
+    # min and max values of the dataset must be saved for model encryption
+    min_max = BoosterParser.training_dataset_parser(x)
+
     if test_encrypted:
-        min_max = BoosterParser.training_dataset_parser(x)
         encrypted_model, keys = encrypt_model(model, min_max, num_cores)
         test_encrypted_model(
             model, 
@@ -60,7 +62,7 @@ def train(x, y, configs, project_name, num_cores=1, test_encrypted=False, wandb_
     test_preds = model.predict(xgb.DMatrix(xtest))
     evaluate_predictions(test_preds, ytest)
 
-    return model
+    return (model, min_max)
 
 
 if __name__ == '__main__':
@@ -80,4 +82,6 @@ if __name__ == '__main__':
 
     else:
         model = train(x, y, configs, project_name, args['cores'], test_encrypted=True, wandb_mode=wandb_mode)
-        pickle.dump(model, open(dataset_name+'-xgboost.pt', "wb" ))
+        filepath = './server-files/'+dataset_name+'-xgboost.pt'
+        print('\nSaving plaintext xgboost model at', filepath)
+        pickle.dump(model, open(filepath, "wb"))
