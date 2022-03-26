@@ -113,4 +113,6 @@ if __name__ == '__main__':
 
     else:
         model = train(x, y, configs, project_name, wandb_mode=wandb_mode)
-        pickle.dump(model, open(dataset_name+'-nn.pt', "wb" ))
+        filepath = './server-files/'+dataset_name+'-nn.pt'
+        print('\nSaving plaintext neural network model at', filepath)
+        pickle.dump(model, open(filepath, "wb" ))

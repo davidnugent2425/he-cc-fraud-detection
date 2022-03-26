@@ -9,7 +9,7 @@ from seaborn import heatmap
 from matplotlib import pyplot as plt
 
 def load_dataset(name='ulb'):
-    print('Loading {} dataset...'.format(name))
+    print('Loading {} dataset...'.format(name), end = "\r")
     if name == 'ulb':
         data = pd.read_csv('../data/creditcard.csv')
         x = data.drop('Class', axis=1)
@@ -30,7 +30,7 @@ def load_dataset(name='ulb'):
                 lbl.fit(list(x[f].values))
                 x[f] = lbl.transform(list(x[f].values))
 
-    print('Dataset loaded!')
+    print('{} dataset loaded'.format(name), u'\u2705')
     return x, y
 
 def train_test_split_undersample(x, y, num_negatives, test_size=0.25):
