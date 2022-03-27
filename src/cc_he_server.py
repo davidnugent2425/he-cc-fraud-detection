@@ -6,6 +6,7 @@ import pickle
 from cc_he_utils import json_serialize, json_deserialize
 import xgboost as xgb
 from ppxgboost import PPBooster as ppbooster
+from train_nn import Classifier
 
 # HE Model
 class HEModel:
@@ -36,11 +37,12 @@ class HEModel:
     def __call__(self, enc_x, show=False, plaintext=False):
         return self.forward(enc_x, show, plaintext)
 
-hidden_layer = torch.load('./nn-hidden-layer.pt')
-output_layer = torch.load('./nn-output-layer.pt')
-he_model = HEModel(hidden_layer, output_layer)
+server_files_path = './server-files/'
+ulb_plaintext_nn_model = pickle.load(open(server_files_path+'ulb-nn.pt', "rb"))
+ulb_encrypted_nn_model = HEModel(ulb_plaintext_nn_model.hidden_layer, ulb_plaintext_nn_model.output_layer)
 
-he_xgboost_model = pickle.load(open('encrypted-xgb-uml-clf-100.pt', "rb"))
+ulb_encrypted_xgboost_model = pickle.load(open(server_files_path+'encrypted-ulb-xgboost.pt', "rb"))
+ieee_encrypted_xgboost_model = pickle.load(open(server_files_path+'encrypted-ieee-xgboost.pt', "rb"))
 
 app = Flask(__name__)
 
@@ -50,18 +52,27 @@ def infer_nn():
     data = request.get_json()
     context = ts.context_from(json_deserialize(data['context']))
     enc_input = ts.ckks_vector_from(context, json_deserialize(data['input']))
-    result = he_model(enc_input)
+    result = ulb_encrypted_nn_model(enc_input)
     return {
         'result': json_serialize(result.serialize())
     }
 
-
-@app.route('/xgboost', methods=['POST'])
-def infer_xgboost():
+@app.route('/xgboost/ulb', methods=['POST'])
+def infer_xgboost_ulb():
     print(len(request.data))
     data = request.get_json()
     enc_input = json_deserialize(data['input'])
-    result = ppbooster.predict_binary(he_xgboost_model, enc_input)
+    result = ppbooster.predict_binary(ulb_encrypted_xgboost_model, enc_input)
+    return {
+        'result': json_serialize(result)
+    }
+
+@app.route('/xgboost/ieee', methods=['POST'])
+def infer_xgboost_ieee():
+    print(len(request.data))
+    data = request.get_json()
+    enc_input = json_deserialize(data['input'])
+    result = ppbooster.predict_binary(ieee_encrypted_xgboost_model, enc_input)
     return {
         'result': json_serialize(result)
     }
