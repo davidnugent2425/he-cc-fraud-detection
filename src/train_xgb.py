@@ -14,7 +14,6 @@ from train_utils import load_dataset, train_test_split_undersample, report_metri
 
 
 def train(x, y, configs, project_name, num_cores=1, test_encrypted=False, wandb_mode=None):
-    print('\nTraining XGBoost model...')
     start_time = time.perf_counter()
 
     wandb.init(config=configs['defaults'], project=project_name, mode=wandb_mode)
@@ -29,10 +28,11 @@ def train(x, y, configs, project_name, num_cores=1, test_encrypted=False, wandb_
     summarize_data(yvalid, 'valid set')
     summarize_data(ytest, 'test set')
     
+    print('\nTraining XGBoost model...')
     clf = xgb.XGBClassifier(
         booster='gbtree',
         max_depth=config.max_depth,
-        learning_rate=config.learning_rate,
+        learning_rate=0.2,
         n_estimators=config.num_estimators,
         tree_method='gpu_hist',
         eval_metric='logloss',

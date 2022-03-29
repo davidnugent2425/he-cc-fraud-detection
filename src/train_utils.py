@@ -93,7 +93,7 @@ def evaluate_predictions(preds, truths):
     plt.title("Confusion matrix")
     plt.ylabel('True class')
     plt.xlabel('Predicted class')
-    plt.show()
+    plt.draw()
 
 def parse_training_args(description, datasets):
     parser = argparse.ArgumentParser(
@@ -109,14 +109,14 @@ def parse_training_args(description, datasets):
 xgboost_configs = {
     "ulb": {
         "defaults": {
-            "max_depth": 7,
-            "learning_rate": 0.2,
-            "undersampling_num_negatives": 2150,
-            "num_estimators": 89,
+            "max_depth": 8,
+            # "learning_rate": [0.1, 0.2],
+            "undersampling_num_negatives": 2186,
+            "num_estimators": 107,
         },
 
         "sweep": {
-            "method": "bayes",
+            "method": "random",
             "metric": {
             "name": "average_precision",
             "goal": "maximize"   
@@ -129,16 +129,16 @@ xgboost_configs = {
                     "min": 6,
                     "max": 12,
                 },
-                "learning_rate": {
-                    "values": [0.1, 0.2]
-                },
+                # "learning_rate": {
+                #     "values": [0.1, 0.2]
+                # },
                 "undersampling_num_negatives": {
-                    "min": 1500,
+                    "min": 400,
                     "max": 2500,
                 },
                 "num_estimators": {
                     "min": 50,
-                    "max": 100,
+                    "max": 150,
                 },
             }
         }
@@ -170,8 +170,8 @@ nn_configs = {
             },
             "parameters": {
                 "undersampling_num_negatives": {
-                    "min": 500,
-                    "max": 1500,
+                    "min": 400,
+                    "max": 2500,
                 },
                 "hidden_layer_size": {
                     "min": 20,

@@ -21,7 +21,7 @@ def dechunk_arr(chunks):
 
 def encrypt_model(model, min_max, num_cores):
     # load and parse model
-    print('\nEncrypting model...')
+    print('Encrypting model...')
     start_time = time.perf_counter()
     encrypted_model, _, _ = BoosterParser.model_to_trees(model, min_max)
 

@@ -46,7 +46,7 @@ ieee_encrypted_xgboost_model = pickle.load(open(server_files_path+'encrypted-iee
 
 app = Flask(__name__)
 
-@app.route('/nn', methods=['POST'])
+@app.route('/nn/ulb', methods=['POST'])
 def infer_nn():
     print(len(request.data))
     data = request.get_json()

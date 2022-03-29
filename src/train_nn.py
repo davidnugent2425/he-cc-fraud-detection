@@ -84,7 +84,7 @@ def train(x, y, configs, project_name, wandb_mode=None):
                 *[loss_batch(model, loss_func, xb, yb) for xb, yb in valid_dl]
             )
         test_loss = np.sum(np.multiply(losses, nums)) / np.sum(nums)
-        wandb.log({"test_loss": test_loss})
+        wandb.log({"validation_loss": test_loss})
     
     preds = model(torch.tensor(xvalid).float()).detach().numpy()
     report_metrics(preds, yvalid)
