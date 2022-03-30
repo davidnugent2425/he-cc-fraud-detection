@@ -5,16 +5,16 @@ from xgboost import XGBClassifier
 import pickle
 from encrypt_xgboost_model import encrypt_model, test_encrypted_model
 from ppxgboost import BoosterParser
-import time
 from sklearn import metrics, preprocessing
 from sklearn.model_selection import train_test_split
 from functools import partial
+from datetime import datetime
 
-from train_utils import load_dataset, train_test_split_undersample, report_metrics, xgboost_configs, parse_training_args, summarize_data, evaluate_predictions
+from train_utils import load_dataset, train_test_split_undersample, report_metrics, xgboost_configs, parse_training_args, summarize_data, evaluate_predictions, show_time_taken
 
 
 def train(x, y, configs, project_name, num_cores=1, test_encrypted=False, wandb_mode=None):
-    start_time = time.perf_counter()
+    start_time = datetime.now()
 
     wandb.init(config=configs['defaults'], project=project_name, mode=wandb_mode)
     config = wandb.config
@@ -43,7 +43,8 @@ def train(x, y, configs, project_name, num_cores=1, test_encrypted=False, wandb_
     model = clf.get_booster()
     preds = model.predict(xgb.DMatrix(xvalid))
     report_metrics(preds, yvalid)
-    print('Time taken to train model:', (time.perf_counter()-start_time)/60)
+    
+    show_time_taken('Time taken to train model:', start_time, datetime.now())
 
     # min and max values of the dataset must be saved for model encryption
     min_max = BoosterParser.training_dataset_parser(x)

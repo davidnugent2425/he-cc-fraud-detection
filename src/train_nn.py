@@ -3,11 +3,11 @@ import torch
 import numpy as np
 import pickle
 from tqdm import tqdm
-import time
 from functools import partial
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
-from train_utils import load_dataset, train_test_split_undersample, report_metrics, nn_configs, prep_data_nn, create_dataloader, parse_training_args, evaluate_predictions
+from datetime import datetime
+from train_utils import load_dataset, train_test_split_undersample, report_metrics, nn_configs, prep_data_nn, create_dataloader, parse_training_args, evaluate_predictions, show_time_taken
 
 # Plaintext Model
 class Classifier(torch.nn.Module):
@@ -44,7 +44,7 @@ def loss_batch(model, loss_func, xb, yb, opt=None):
 
 def train(x, y, configs, project_name, wandb_mode=None):
     print('Training neural network...')
-    start_time = time.perf_counter()
+    start_time = datetime.now()
     torch.manual_seed(0)
     np.random.seed(0)
     wandb.init(config=configs['defaults'], project=project_name, mode=wandb_mode)
@@ -89,7 +89,7 @@ def train(x, y, configs, project_name, wandb_mode=None):
     preds = model(torch.tensor(xvalid).float()).detach().numpy()
     report_metrics(preds, yvalid)
 
-    print('Time taken to train model:', (time.perf_counter()-start_time)/60)
+    show_time_taken('Time taken to train model:', start_time, datetime.now())
 
     test_preds = model(torch.tensor(xtest).float()).detach().numpy()
     evaluate_predictions(test_preds, ytest)

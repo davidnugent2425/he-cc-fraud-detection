@@ -3,10 +3,13 @@ import os
 import tenseal as ts
 import torch
 import pickle
-from cc_he_utils import json_serialize, json_deserialize
 import xgboost as xgb
 from ppxgboost import PPBooster as ppbooster
 from train_nn import Classifier
+from IPython.display import display
+from datetime import datetime
+from cc_he_utils import json_serialize, json_deserialize
+from train_utils import show_time_taken
 
 # HE Model
 class HEModel:
@@ -48,31 +51,40 @@ app = Flask(__name__)
 
 @app.route('/nn/ulb', methods=['POST'])
 def infer_nn():
-    print(len(request.data))
     data = request.get_json()
     context = ts.context_from(json_deserialize(data['context']))
     enc_input = ts.ckks_vector_from(context, json_deserialize(data['input']))
+    print('\nReceived encrypted input for ulb neural network model:')
+    print(enc_input)
+    start_time = datetime.now()
     result = ulb_encrypted_nn_model(enc_input)
+    show_time_taken('Inference time:', start_time, datetime.now())
     return {
         'result': json_serialize(result.serialize())
     }
 
 @app.route('/xgboost/ulb', methods=['POST'])
 def infer_xgboost_ulb():
-    print(len(request.data))
     data = request.get_json()
     enc_input = json_deserialize(data['input'])
+    print('\nReceived encrypted input for ulb xgboost model:')
+    display(enc_input)
+    start_time = datetime.now()
     result = ppbooster.predict_binary(ulb_encrypted_xgboost_model, enc_input)
+    show_time_taken('Inference time:', start_time, datetime.now())
     return {
         'result': json_serialize(result)
     }
 
 @app.route('/xgboost/ieee', methods=['POST'])
 def infer_xgboost_ieee():
-    print(len(request.data))
     data = request.get_json()
     enc_input = json_deserialize(data['input'])
+    print('\nReceived encrypted input for ieee xgboost model:')
+    display(enc_input)
+    start_time = datetime.now()
     result = ppbooster.predict_binary(ieee_encrypted_xgboost_model, enc_input)
+    show_time_taken('Inference time:', start_time, datetime.now())
     return {
         'result': json_serialize(result)
     }

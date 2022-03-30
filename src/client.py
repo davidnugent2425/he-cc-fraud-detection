@@ -8,8 +8,9 @@ import argparse
 from IPython.display import display
 import tenseal as ts
 from sklearn import preprocessing
+from datetime import datetime
 
-from train_utils import load_dataset, convert_to_binary, prep_data_nn
+from train_utils import load_dataset, convert_to_binary, prep_data_nn, show_time_taken
 from cc_he_utils import json_serialize, json_deserialize, setup_tenseal_context
 
 parser = argparse.ArgumentParser(
@@ -49,6 +50,7 @@ if __name__ == '__main__':
         )
 
         encrypted_input = test_input.copy()
+        start_time = datetime.now()
         PPBooster.enc_input_vector(column_hash_key, order_preserving_key, set(xtest.columns), encrypted_input, PPBooster.MetaData(min_max))
         print('\nEncrypted input:')
         display(encrypted_input)
@@ -78,6 +80,7 @@ if __name__ == '__main__':
         test_input = scaler.transform(test_input)[0]
 
         context = setup_tenseal_context()
+        start_time = datetime.now()
         encrypted_input = ts.ckks_vector(context, test_input)
         print('\nEncrypted input:')
         print(encrypted_input)
@@ -100,3 +103,5 @@ if __name__ == '__main__':
         print('Which is correct!')
     else:
         print('Which is incorrect.')
+
+    show_time_taken('Time taken from encryption of input to decryption of result:', start_time, datetime.now())

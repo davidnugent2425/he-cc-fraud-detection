@@ -8,9 +8,9 @@ from ope.pyope.ope import OPE
 import pandas as pd
 import numpy as np
 import xgboost as xgb
-import time
+from datetime import datetime
 
-from train_utils import load_dataset, train_test_split_undersample, convert_to_binary
+from train_utils import load_dataset, train_test_split_undersample, convert_to_binary, show_time_taken
 
 def chunk_arr(arr, num_chunks):
     chunk_size = len(arr) // num_chunks
@@ -22,7 +22,7 @@ def dechunk_arr(chunks):
 def encrypt_model(model, min_max, num_cores):
     # load and parse model
     print('Encrypting model...')
-    start_time = time.perf_counter()
+    start_time = datetime.now()
     encrypted_model, _, _ = BoosterParser.model_to_trees(model, min_max)
 
     """
@@ -48,12 +48,12 @@ def encrypt_model(model, min_max, num_cores):
     )
     encrypted_model = dechunk_arr(output_chunks)
 
-    print('Time taken to encrypt model:', (time.perf_counter()-start_time)/60)
+    show_time_taken('Time taken to encrypt model:', start_time, datetime.now())
     return encrypted_model, (column_hash_key, order_preserving_key, paillier_private_key, min_max)
 
 def test_encrypted_model(plaintext_model, encrypted_model, keys, xtest, ytest, num_cores):
     print('\nTesting encrypted model...')
-    start_time = time.perf_counter()
+    start_time = datetime.now()
     start_index = ytest.index[0]
     test_idxs = np.array(ytest[ytest==1].index)
     test_idxs = np.random.choice(test_idxs, 75, replace = False) - start_index
@@ -90,7 +90,7 @@ def test_encrypted_model(plaintext_model, encrypted_model, keys, xtest, ytest, n
 
     result = np.array_equal(preds_plaintext, preds_decrypted)
     print('Success!') if result else print('Failed.')
-    print('Time taken for testing:', (time.perf_counter()-start_time)/60)
+    show_time_taken('Time taken for testing:', start_time, datetime.now())
 
 if __name__ == '__main__':
     model_filename = dataset_name+'-xgboost.pt'

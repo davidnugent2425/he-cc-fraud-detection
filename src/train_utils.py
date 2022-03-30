@@ -9,7 +9,7 @@ from seaborn import heatmap
 from matplotlib import pyplot as plt
 
 def load_dataset(name='ulb'):
-    print('Loading {} dataset...'.format(name), end = "\r")
+    print('Loading {} dataset...\n'.format(name))
     if name == 'ulb':
         data = pd.read_csv('../data/creditcard.csv')
         x = data.drop('Class', axis=1)
@@ -30,7 +30,6 @@ def load_dataset(name='ulb'):
                 lbl.fit(list(x[f].values))
                 x[f] = lbl.transform(list(x[f].values))
 
-    print('{} dataset loaded'.format(name), u'\u2705')
     return x, y
 
 def train_test_split_undersample(x, y, num_negatives, test_size=0.25):
@@ -106,6 +105,11 @@ def parse_training_args(description, datasets):
     parser.add_argument("-c", "--cores", metavar='NUM-CORES', type=int, default=1, help="set number of cores for paralellization")
     return vars(parser.parse_args())
 
+def show_time_taken(info, start_time, end_time):
+    diff = end_time-start_time
+    time_str = '{} mins, {} seconds, {} ms'.format(diff.seconds//60, diff.seconds%60, diff.microseconds//1000)
+    print(info, time_str)
+
 xgboost_configs = {
     "ulb": {
         "defaults": {
@@ -148,8 +152,43 @@ xgboost_configs = {
         "defaults": {
             "max_depth": 7,
             "learning_rate": 0.2,
-            "undersampling_num_negatives": 15565,
-            "num_estimators": 89,
+            "undersampling_num_negatives": 37707,
+            "num_estimators": 95,
+        },
+
+        "sweep": {
+            "method": "random",
+            "metric": {
+            "name": "average_precision",
+            "goal": "maximize"   
+            },
+            "parameters": {
+        #         "booster": {
+        #             "values": ["gbtree", "gblinear"]
+        #         },
+                "max_depth": {
+                    "values": [7],
+                },
+                # {
+                #     "min": 6,
+                #     "max": 12,
+                # },
+                # "learning_rate": {
+                #     "values": [0.1, 0.2]
+                # },
+                "undersampling_num_negatives": {
+                    "min": 400,
+                    "max": 300000,
+                },
+                "num_estimators": {
+                    "min": 90,
+                    "max": 100,
+                }
+                # "num_estimators": {
+                #     "min": 50,
+                #     "max": 150,
+                # },
+            }
         }
     }
 }
