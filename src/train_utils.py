@@ -222,6 +222,37 @@ nn_configs = {
                 }
             }
         }
+    },
+
+    "ieee": {
+        "defaults": {
+            "undersampling_num_negatives": 20000,
+            "hidden_layer_size": 100,
+            "pos_weight": 3,
+        },
+
+        "sweep": {
+            "method": "random",
+            "metric": {
+            "name": "average_precision",
+            "goal": "maximize"   
+            },
+            "parameters": {
+                "undersampling_num_negatives": {
+                    "min": 400,
+                    "max": 300000,
+                },
+                "hidden_layer_size": {
+                    "min": 20,
+                    "max": 100,
+                },
+                "pos_weight": {
+                    "min": 1,
+                    "max": 5,
+                }
+            }
+        }
     }
+
 }
 

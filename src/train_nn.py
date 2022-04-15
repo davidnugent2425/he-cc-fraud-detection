@@ -25,8 +25,9 @@ def test_encrypted_nn(plaintext_model, xtest, ytest, scaler):
     preds_plaintext = convert_to_binary(plaintext_model(torch.tensor(xtest).float()).detach().numpy())
     print('Plaintext predictions:', preds_plaintext)
 
-    context = setup_tenseal_context()
-    encrypted_model = HEModel(plaintext_model.hidden_layer, plaintext_model.output_layer)
+    num_multiplications = len(plaintext_model.hidden_layers)*2 + 1
+    context = setup_tenseal_context(multiplicative_depth=num_multiplications)
+    encrypted_model = HEModel(plaintext_model.hidden_layers, plaintext_model.output_layer)
     print('Encrypting inputs, making encrypted predictions, and decrypting.')
     preds_decrypted = []
     for row in xtest:
@@ -42,20 +43,21 @@ def test_encrypted_nn(plaintext_model, xtest, ytest, scaler):
 
 # HE Model
 class HEModel:
-    def __init__(self, hidden_layer, output_layer):
-        self.hidden_layer_weight = hidden_layer.weight.t().tolist()
-        self.hidden_layer_bias = hidden_layer.bias.tolist()
+    def __init__(self, hidden_layers, output_layer):
+        self.hidden_layer_weights = [hidden_layer.weight.t().tolist() for hidden_layer in hidden_layers]
+        self.hidden_layer_biases = [hidden_layer.bias.tolist() for hidden_layer in hidden_layers]
         self.output_layer_weight = output_layer.weight.t().tolist()
         self.output_layer_bias = output_layer.bias.tolist()
         
-    def forward(self, enc_x, show=False, plaintext=False):
+    def forward(self, enc_y, show=False, plaintext=False):
         self.show = show
         self.plaintext = plaintext
-        self.debug_output('Input', enc_x)
-        enc_y = enc_x.mm(self.hidden_layer_weight) + self.hidden_layer_bias
-        self.debug_output('Hidden Layer', enc_y)
-        enc_y *= enc_y
-        self.debug_output('Activation', enc_y)
+        self.debug_output('Input', enc_y)
+        for i in range(len(self.hidden_layer_weights)):
+            enc_y = enc_y.mm(self.hidden_layer_weights[i]) + self.hidden_layer_biases[i]
+            self.debug_output('Hidden Layer', enc_y)
+            enc_y *= enc_y
+            self.debug_output('Activation', enc_y)
         enc_y = enc_y.mm(self.output_layer_weight) + self.output_layer_bias
         self.debug_output('Output Layer', enc_y)
         return enc_y
@@ -71,18 +73,20 @@ class HEModel:
 
 # Plaintext Model
 class Classifier(torch.nn.Module):
-    def __init__(self, hidden_layer_size=15):
+    def __init__(self, hidden_layer_size=15, input_size=30, num_hidden_layers=1):
         super().__init__()
-        self.hidden_layer = torch.nn.Linear(30, hidden_layer_size)
+        self.hidden_layers = torch.nn.ModuleList([torch.nn.Linear(input_size, hidden_layer_size)])
+        self.hidden_layers.extend([torch.nn.Linear(hidden_layer_size, hidden_layer_size) for _ in range(num_hidden_layers-1)])
         self.output_layer = torch.nn.Linear(hidden_layer_size, 1)
 
-    def forward(self, x, show=False):
+    def forward(self, y, show=False):
         self.show = show
-        self.debug_output('Input', x)
-        y = self.hidden_layer(x)
-        self.debug_output('Hidden Layer', y)
-        y = y * y
-        self.debug_output('Activation', y)
+        self.debug_output('Input', y)
+        for hidden_layer in self.hidden_layers:
+            y = hidden_layer(y)
+            self.debug_output('Hidden Layer', y)
+            y = y * y
+            self.debug_output('Activation', y)
         y = self.output_layer(y)
         self.debug_output('Output Layer', y)
         return y.squeeze()
@@ -102,7 +106,7 @@ def loss_batch(model, loss_func, xb, yb, opt=None):
 
     return loss.item(), len(xb)
 
-def train(x, y, configs, project_name, wandb_mode=None):
+def train(x, y, configs, project_name, wandb_mode=None, n_epochs=100, lr=0.001):
     print('Training neural network...')
     start_time = datetime.now()
     torch.manual_seed(0)
@@ -115,6 +119,8 @@ def train(x, y, configs, project_name, wandb_mode=None):
     # split training data into training and validation sets for hyperparameter tuning
     xtrain, xvalid, ytrain, yvalid = train_test_split_undersample(xtrain, ytrain, config.undersampling_num_negatives, test_size=0.1875)
 
+    num_columns = len(xtrain.columns)
+
     scaler = preprocessing.MinMaxScaler()
     scaler.fit(x.values)
 
@@ -125,13 +131,12 @@ def train(x, y, configs, project_name, wandb_mode=None):
     train_dl = create_dataloader(xtrain, ytrain)
     valid_dl = create_dataloader(xvalid, yvalid)
 
-    model = Classifier(config.hidden_layer_size)
+    model = Classifier(config.hidden_layer_size, num_columns, num_hidden_layers=1)
     wandb.watch(model, log_freq=100)
 
     pos_weight = torch.tensor([(config.undersampling_num_negatives/398)*config.pos_weight])
-    opt = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     loss_func = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-    n_epochs = 100
 
     for epoch in tqdm(range(n_epochs)):
         model.train()
@@ -160,7 +165,7 @@ def train(x, y, configs, project_name, wandb_mode=None):
 
 
 if __name__ == '__main__':
-    args = parse_training_args("Train a neural network compatible with conversion to a network using homomorphic encryption", ['ulb'])
+    args = parse_training_args("Train a neural network compatible with conversion to a network using homomorphic encryption", ['ulb', 'ieee'])
 
     dataset_name = 'ulb' if not args['dataset'] else args['dataset']
     project_name = 'cc-{}-nn'.format(dataset_name)

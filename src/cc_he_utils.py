@@ -29,10 +29,10 @@ def json_serialize(_bytes):
 def json_deserialize(hex):
     return pickle.loads(bytearray.fromhex(hex))
 
-def setup_tenseal_context():
+def setup_tenseal_context(multiplicative_depth=3):
     # TenSEAL CKKS HE encryption scheme context setup
     bits_scale = 50
-    coeff_mod_bit_sizes = [60, bits_scale, bits_scale, bits_scale, 60]
+    coeff_mod_bit_sizes = [60] + [bits_scale]*multiplicative_depth + [60]
     polynomial_modulus_degree = 8192*2
 
     # Create context
