@@ -117,7 +117,7 @@ def loss_batch(model, loss_func, xb, yb, opt=None):
 
     return loss.item(), len(xb)
 
-def train(x, y, configs, project_name, wandb_mode=None, n_epochs=300, lr=0.001): # 0.00001 for Vesta
+def train(x, y, configs, project_name, wandb_mode=None, n_epochs=100, lr=0.001): # 0.00001 for Vesta
     print('Training neural network...')
     start_time = datetime.now()
     torch.manual_seed(0)
