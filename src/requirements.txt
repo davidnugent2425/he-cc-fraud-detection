@@ -18,3 +18,4 @@ torch
 tenseal
 requests
 tqdm
+timerit

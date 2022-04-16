@@ -8,6 +8,7 @@ from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from datetime import datetime
 import tenseal as ts
+from timerit import Timerit
 from train_utils import load_dataset, train_test_split_undersample, report_metrics, nn_configs, prep_data_nn, create_dataloader, parse_training_args, evaluate_predictions, show_time_taken, convert_to_binary
 from cc_he_utils import setup_tenseal_context
 
@@ -40,6 +41,16 @@ def test_encrypted_nn(plaintext_model, xtest, ytest, scaler):
 
     result = np.array_equal(preds_plaintext, preds_decrypted)
     print('Success!') if result else print('Failed.')
+
+    print('\nLatency Testing:')
+    for _ in Timerit(num=100, label='Transaction Encryption', verbose=1):
+        encrypted_input = ts.ckks_vector(context, xtest[0])
+
+    for _ in Timerit(num=100, label='Plaintext Inference', verbose=1):
+        convert_to_binary(plaintext_model(torch.tensor(xtest[0]).float()).detach().numpy())
+
+    for _ in Timerit(num=100, label='Encrypted Inference', verbose=1):
+        encrypted_model(encrypted_input)
 
 # HE Model
 class HEModel:
@@ -106,7 +117,7 @@ def loss_batch(model, loss_func, xb, yb, opt=None):
 
     return loss.item(), len(xb)
 
-def train(x, y, configs, project_name, wandb_mode=None, n_epochs=100, lr=0.001):
+def train(x, y, configs, project_name, wandb_mode=None, n_epochs=300, lr=0.001): # 0.00001 for Vesta
     print('Training neural network...')
     start_time = datetime.now()
     torch.manual_seed(0)

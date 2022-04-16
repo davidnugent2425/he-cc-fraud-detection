@@ -65,13 +65,6 @@ if __name__ == '__main__':
         print('\nReceived encrypted result:\n', encrypted_result)
         
         decrypted_result = PaillierAPI.decrypt(paillier_private_key, encrypted_result)
-        # decrypted_result = 1 if decrypted_result >= 0.5 else 0
-
-        # print('\nDecrypted result:', decrypted_result)
-        # if decrypted_result == correct_test_output:
-        #     print('Which is correct!')
-        # else:
-        #     print('Which is incorrect.')
 
     elif args['model'] == 'nn':
         scaler = preprocessing.MinMaxScaler()

@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import xgboost as xgb
 from datetime import datetime
+from timerit import Timerit
 
 from train_utils import load_dataset, train_test_split_undersample, convert_to_binary, show_time_taken
 
@@ -91,6 +92,18 @@ def test_encrypted_model(plaintext_model, encrypted_model, keys, xtest, ytest, n
     result = np.array_equal(preds_plaintext, preds_decrypted)
     print('Success!') if result else print('Failed.')
     show_time_taken('Time taken for testing:', start_time, datetime.now())
+    
+    print('\nLatency Testing:')
+    for _ in Timerit(num=5, label='Transaction Encryption', verbose=1):
+        encrypted_xtest = xtest[:1].copy() # copying time was tested to be negligible
+        PPBooster.enc_input_vector(column_hash_key, order_preserving_key, xtest.columns, encrypted_xtest, PPBooster.MetaData(min_max))
+
+    for _ in Timerit(num=100, label='Plaintext Inference', verbose=1):
+        convert_to_binary(plaintext_model.predict(xgb.DMatrix(xtest[:1])))
+
+    for _ in Timerit(num=100, label='Encrypted Inference', verbose=1):
+        PPBooster.predict_binary(encrypted_model, encrypted_xtest[:1])
+
 
 if __name__ == '__main__':
     model_filename = dataset_name+'-xgboost.pt'

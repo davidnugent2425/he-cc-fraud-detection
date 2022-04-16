@@ -226,9 +226,9 @@ nn_configs = {
 
     "ieee": {
         "defaults": {
-            "undersampling_num_negatives": 20000,
-            "hidden_layer_size": 100,
-            "pos_weight": 3,
+            "undersampling_num_negatives": 200000,
+            "hidden_layer_size": 500,
+            "pos_weight": 1,
         },
 
         "sweep": {
