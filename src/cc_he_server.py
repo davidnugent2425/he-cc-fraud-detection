@@ -14,7 +14,7 @@ from train_utils import show_time_taken
 
 server_files_path = './server-files/'
 ulb_plaintext_nn_model = pickle.load(open(server_files_path+'ulb-nn.pt', "rb"))
-ulb_encrypted_nn_model = HEModel(ulb_plaintext_nn_model.hidden_layer, ulb_plaintext_nn_model.output_layer)
+ulb_encrypted_nn_model = HEModel(ulb_plaintext_nn_model.hidden_layers, ulb_plaintext_nn_model.output_layer)
 
 ulb_encrypted_xgboost_model = pickle.load(open(server_files_path+'encrypted-ulb-xgboost.pt', "rb"))
 ieee_encrypted_xgboost_model = pickle.load(open(server_files_path+'encrypted-ieee-xgboost.pt', "rb"))
