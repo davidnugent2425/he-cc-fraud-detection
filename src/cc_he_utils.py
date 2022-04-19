@@ -31,9 +31,10 @@ def json_deserialize(hex):
 
 def setup_tenseal_context(multiplicative_depth=3):
     # TenSEAL CKKS HE encryption scheme context setup
-    bits_scale = 50
-    coeff_mod_bit_sizes = [60] + [bits_scale]*multiplicative_depth + [60]
-    polynomial_modulus_degree = 8192*2
+    bits_scale = 20
+    coeff_mod_bit_sizes = [30] + [bits_scale]*multiplicative_depth + [30]
+    print(coeff_mod_bit_sizes)
+    polynomial_modulus_degree = 8192
 
     # Create context
     context = ts.context(ts.SCHEME_TYPE.CKKS, polynomial_modulus_degree, coeff_mod_bit_sizes=coeff_mod_bit_sizes)

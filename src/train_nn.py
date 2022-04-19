@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from datetime import datetime
 import tenseal as ts
 from timerit import Timerit
-from train_utils import load_dataset, train_test_split_undersample, report_metrics, nn_configs, prep_data_nn, create_dataloader, parse_training_args, evaluate_predictions, show_time_taken, convert_to_binary
+from train_utils import load_dataset, train_test_split_undersample, report_metrics, nn_configs, prep_data_nn, create_dataloader, parse_training_args, evaluate_predictions, show_time_taken, convert_to_binary, get_pickled_size
 from cc_he_utils import setup_tenseal_context
 
 def test_encrypted_nn(plaintext_model, xtest, ytest, scaler):
@@ -51,6 +51,11 @@ def test_encrypted_nn(plaintext_model, xtest, ytest, scaler):
 
     for _ in Timerit(num=100, label='Encrypted Inference', verbose=1):
         encrypted_model(encrypted_input)
+
+    print('\nStorage size testing:')
+    get_pickled_size(xtest[0], 'Plaintext Transaction')
+    get_pickled_size(encrypted_input.serialize(), 'Encrypted Transaction')
+    get_pickled_size(plaintext_model, 'Plaintext Model')
 
 # HE Model
 class HEModel:

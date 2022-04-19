@@ -7,6 +7,8 @@ import argparse
 import torch
 from seaborn import heatmap
 from matplotlib import pyplot as plt
+import os
+import pickle
 
 def load_dataset(name='ulb'):
     print('Loading {} dataset...\n'.format(name))
@@ -109,6 +111,13 @@ def show_time_taken(info, start_time, end_time):
     diff = end_time-start_time
     time_str = '{} mins, {} seconds, {} ms'.format(diff.seconds//60, diff.seconds%60, diff.microseconds//1000)
     print(info, time_str)
+
+def get_pickled_size(obj, label):
+    pickle.dump(obj, open('temp.pt', "wb" ))
+    file_size = os.path.getsize('temp.pt')
+    print('{}: {} kB'.format(label, file_size/1000))
+    os.remove('temp.pt')
+
 
 xgboost_configs = {
     "ulb": {

@@ -11,7 +11,7 @@ import xgboost as xgb
 from datetime import datetime
 from timerit import Timerit
 
-from train_utils import load_dataset, train_test_split_undersample, convert_to_binary, show_time_taken
+from train_utils import load_dataset, train_test_split_undersample, convert_to_binary, show_time_taken, get_pickled_size
 
 def chunk_arr(arr, num_chunks):
     chunk_size = len(arr) // num_chunks
@@ -103,6 +103,12 @@ def test_encrypted_model(plaintext_model, encrypted_model, keys, xtest, ytest, n
 
     for _ in Timerit(num=100, label='Encrypted Inference', verbose=1):
         PPBooster.predict_binary(encrypted_model, encrypted_xtest[:1])
+
+    print('\nStorage size testing:')
+    get_pickled_size(xtest[:1], 'Plaintext Transaction')
+    get_pickled_size(encrypted_xtest, 'Encrypted Transaction')
+    get_pickled_size(plaintext_model, 'Plaintext Model')
+    get_pickled_size(encrypted_model, 'Encrypted Model')
 
 
 if __name__ == '__main__':
