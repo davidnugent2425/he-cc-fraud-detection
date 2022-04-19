@@ -161,8 +161,8 @@ xgboost_configs = {
         "defaults": {
             "max_depth": 7,
             "learning_rate": 0.2,
-            "undersampling_num_negatives": 261055,
-            "num_estimators": 98,
+            "undersampling_num_negatives": 76105,
+            "num_estimators": 92,
         },
 
         "sweep": {
