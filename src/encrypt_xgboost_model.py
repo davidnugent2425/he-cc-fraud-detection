@@ -56,8 +56,11 @@ def test_encrypted_model(plaintext_model, encrypted_model, keys, xtest, ytest, n
     print('\nTesting encrypted model...')
     start_time = datetime.now()
     start_index = ytest.index[0]
-    test_idxs = np.array(ytest[ytest==1].index)
-    test_idxs = np.random.choice(test_idxs, 75, replace = False) - start_index
+    test_fraud_idxs = np.array(ytest[ytest==1].index)
+    test_fraud_idxs = np.random.choice(test_fraud_idxs, 75, replace = False)
+    test_normal_idxs = np.array(ytest[ytest==0].index)
+    test_normal_idxs = np.random.choice(test_normal_idxs, 75, replace = False)
+    test_idxs = np.concatenate([test_fraud_idxs, test_normal_idxs]) - start_index
     xtest = xtest.iloc[test_idxs, :]
     ytest = ytest.iloc[test_idxs]
 
@@ -94,7 +97,7 @@ def test_encrypted_model(plaintext_model, encrypted_model, keys, xtest, ytest, n
     show_time_taken('Time taken for testing:', start_time, datetime.now())
     
     print('\nLatency Testing:')
-    for _ in Timerit(num=5, label='Transaction Encryption', verbose=1):
+    for _ in Timerit(num=100, label='Transaction Encryption', verbose=1):
         encrypted_xtest = xtest[:1].copy() # copying time was tested to be negligible
         PPBooster.enc_input_vector(column_hash_key, order_preserving_key, xtest.columns, encrypted_xtest, PPBooster.MetaData(min_max))
 

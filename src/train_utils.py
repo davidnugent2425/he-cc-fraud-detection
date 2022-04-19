@@ -122,10 +122,10 @@ def get_pickled_size(obj, label):
 xgboost_configs = {
     "ulb": {
         "defaults": {
-            "max_depth": 8,
+            "max_depth": 9,
             # "learning_rate": [0.1, 0.2],
-            "undersampling_num_negatives": 2186,
-            "num_estimators": 107,
+            "undersampling_num_negatives": 492,
+            "num_estimators": 51,
         },
 
         "sweep": {
@@ -161,8 +161,8 @@ xgboost_configs = {
         "defaults": {
             "max_depth": 7,
             "learning_rate": 0.2,
-            "undersampling_num_negatives": 37707,
-            "num_estimators": 95,
+            "undersampling_num_negatives": 261055,
+            "num_estimators": 98,
         },
 
         "sweep": {
@@ -205,9 +205,9 @@ xgboost_configs = {
 nn_configs = {
     "ulb": {
         "defaults": {
-            "undersampling_num_negatives": 853,
-            "hidden_layer_size": 27,
-            "pos_weight": 3,
+            "undersampling_num_negatives": 2197,
+            "hidden_layer_size": 47,
+            "pos_weight": 5,
         },
 
         "sweep": {

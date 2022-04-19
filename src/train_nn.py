@@ -16,8 +16,13 @@ def test_encrypted_nn(plaintext_model, xtest, ytest, scaler):
     print('\nTesting encrypted model...')
     start_time = datetime.now()
     start_index = ytest.index[0]
-    test_idxs = np.array(ytest[ytest==1].index)
-    test_idxs = np.random.choice(test_idxs, 75, replace = False) - start_index
+    # test_idxs = np.array(ytest[ytest==1].index)
+    # test_idxs = np.random.choice(test_idxs, 75, replace = False) - start_index
+    test_fraud_idxs = np.array(ytest[ytest==1].index)
+    test_fraud_idxs = np.random.choice(test_fraud_idxs, 75, replace = False)
+    test_normal_idxs = np.array(ytest[ytest==0].index)
+    test_normal_idxs = np.random.choice(test_normal_idxs, 75, replace = False)
+    test_idxs = np.concatenate([test_fraud_idxs, test_normal_idxs]) - start_index
     xtest = xtest.iloc[test_idxs, :]
     ytest = ytest.iloc[test_idxs]
     xtest, ytest = prep_data_nn(xtest, ytest, scaler)
@@ -25,6 +30,7 @@ def test_encrypted_nn(plaintext_model, xtest, ytest, scaler):
     print('Making plaintext predictions.')
     preds_plaintext = convert_to_binary(plaintext_model(torch.tensor(xtest).float()).detach().numpy())
     print('Plaintext predictions:', preds_plaintext)
+    print(len(preds_plaintext))
 
     num_multiplications = len(plaintext_model.hidden_layers)*2 + 1
     context = setup_tenseal_context(multiplicative_depth=num_multiplications)
@@ -130,6 +136,9 @@ def train(x, y, configs, project_name, wandb_mode=None, n_epochs=100, lr=0.001):
     wandb.init(config=configs['defaults'], project=project_name, mode=wandb_mode)
     config = wandb.config
 
+    # n_epochs = 300
+    # lr = 0.00001
+
     # split data into data used for training and data used for testing
     xtrain, xtest_df, ytrain, ytest_df = train_test_split(x, y, test_size=0.2, shuffle=False)
     # split training data into training and validation sets for hyperparameter tuning
@@ -171,6 +180,7 @@ def train(x, y, configs, project_name, wandb_mode=None, n_epochs=100, lr=0.001):
     report_metrics(preds, yvalid)
 
     show_time_taken('Time taken to train model:', start_time, datetime.now())
+    # model = pickle.load(open('./server-files/ulb-nn.pt', "rb"))
 
     test_encrypted_nn(model, xtest_df, ytest_df, scaler)
 
