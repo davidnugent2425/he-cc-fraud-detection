@@ -25,3 +25,11 @@ To set up a kernel which can be used to run the Jupyter Notebooks in this enviro
 ```
 python -m ipykernel install --user --name=he-cc-fraud-detection
 ```
+
+## Datasets Download
+
+To download the relevant datasets, [Kaggle API credentials](https://github.com/Kaggle/kaggle-api#api-credentials) are a (free) prerequisite. The [rules](https://www.kaggle.com/competitions/ieee-fraud-detection/rules) for the IEEE-CIS Fraud Detection must also be accepted (for the Vesta dataset). The following script can then be run which downloads the datasets into the appropriate directory
+
+```
+python download_datasets.py
+```
