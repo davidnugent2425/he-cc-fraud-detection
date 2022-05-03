@@ -1,0 +1,3 @@
+[submodule "privacy-preserving-xgboost-inference"]
+	path = privacy-preserving-xgboost-inference
+	url = https://github.com/davidnugent2425/privacy-preserving-xgboost-inference.git

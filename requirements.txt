@@ -6,11 +6,12 @@ phe==1.4.0
 pybind11
 scipy==1.7.1
 scikit-learn==1.0.2
-xgboost==0.90
+xgboost==1.3.3
 flask==2.0.2
 pytest==6.2.5
-./third-party/ope
--e .
+./privacy-preserving-xgboost-inference/third-party/ope
+-e ./privacy-preserving-xgboost-inference
+
 ipykernel
 matplotlib
 seaborn
@@ -19,3 +20,4 @@ tenseal
 requests
 tqdm
 timerit
+wandb==0.12.11
